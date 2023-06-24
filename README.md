@@ -95,8 +95,7 @@ This repository is a simplified crash course on Next.js. It is meant to be a qui
   With the surge of `TypeScript`, it's likely you'll utilize it and `Tailwind CSS` in your `Next.js` projects. The following dependencies are highly recommended:
 
   ```bash
-  npm i -D @total-typescript/ts-reset
-  npm i -D prettier-plugin-tailwindcss
+  npm i -D @total-typescript/ts-reset prettier-plugin-tailwindcss
   ```
   
   Both dev dependencies, the first is a `TypeScript` reset that fixes many inference issues and the second is a `Prettier` plugin that allows for the sorting of `Tailwind CSS` classes.
@@ -165,6 +164,80 @@ This repository is a simplified crash course on Next.js. It is meant to be a qui
 </details>
 
 <details>
+  <summary>Reserved File Names</summary></br>
+
+  As explained, `Next.js` handles routing with a file-based router. What this means is that it will automatically create routes based on reserved file names.
+
+  The reserved file names are as follows:
+  
+  - `page.tsx`
+  - `layout.tsx`
+  - `loading.tsx`
+  - `error.tsx`
+  - `not-found.tsx`
+  - `route.ts`
+
+  The `page.tsx` file lets `Next.js` know that the folder is a route. For example, creating a `/app/profile/page.tsx` file will create a route at `/app/profile`. An `/app/profile/settings/page.tsx` file will create a route at `/app/profile/settings`.
+
+  The `layout.tsx` file is like the one we saw earlier, but it can also be used in subdirectories or nested routes. By doing so, we can have a different shared layout for different pages. For more information, see the [Next.js documentation](https://nextjs.org/docs/app/api-reference/file-conventions/layout).
+
+  The `loading.tsx` file is used to display a loading indicator while the page is loading. This is useful for pages that have a lot of content or pages that are fetching data from an API. For more information, see the [Next.js documentation](https://nextjs.org/docs/app/building-your-application/routing/loading-ui-and-streaming).
+
+  This video is also a great resource for [Loading Skeletons](https://www.youtube.com/watch?v=7MKEOfSP2s4)
+
+  The `error.tsx` file is used to display an error page when an error occurs. This is useful for pages that are fetching data from an API.
+
+  ```tsx
+  'use client' // Error components must be Client Components
+ 
+  import { useEffect } from 'react'
+  
+  export default function Error({
+    error,
+    reset,
+  }: {
+    error: Error
+    reset: () => void
+  }) {
+    useEffect(() => {
+      // Log the error to an error reporting service
+      console.error(error)
+    }, [error])
+  
+    return (
+      <div>
+        <h2>Something went wrong!</h2>
+        <button
+          onClick={
+            // Attempt to recover by trying to re-render the segment
+            () => reset()
+          }
+        >
+          Try again
+        </button>
+      </div>
+    )
+  }
+  ```
+
+  For more information, see the [Next.js documentation](https://nextjs.org/docs/app/api-reference/file-conventions/error).
+
+  The `not-found.tsx` file is used to display a custom 404 page when a notFound() error is thrown from `next/navigation`. It also handles any unmatched URLs for the entire application. So, for example:
+
+  ```tsx
+  import { notFound } from 'next/navigation';
+
+  if (!user) {
+    notFound();
+  }
+  ```
+
+  For more information, see the [Next.js documentation](https://nextjs.org/docs/app/api-reference/file-conventions/not-found).
+
+  The final reserved file name is `route.ts`. It relates to serverless API routes, which we'll cover later.
+</details>
+
+<details>
   <summary>Server and Client Components</summary></br>
 
   As mentioned earlier, `Next.js` utilizes server-side rendering. What this means is that, by default, any `page.tsx` file or component within the `app` directory will be rendered on the server-side. This is great for SEO, but it's not always what you want.
@@ -196,69 +269,52 @@ This repository is a simplified crash course on Next.js. It is meant to be a qui
 
 <details>
   <summary>Routing</summary></br>
+  `Next.js` uses server-centric routing with client-side navigation. This means that, by default, it will render a page on the server-side, but it will use client-side navigation to navigate between pages. This is great for SEO.
+  
+  To navigate between routes, we can utilize one of two things:
 
-  As mentioned earlier, routing is very easy in `Next.js` and utilizes a file-based routing system. Let's say we wanted to create an About page in our application.
-
-  To do so, create a new folder called `about` in the `app` directory and create a `page.tsx` file within the folder. Then, add the following code to the `page.tsx` file:
+  - The `Link` component
+  - The `useRouter` hook
 
   ```tsx
-  export default function About() {
+  import Link from 'next/link'
+ 
+  export default function Page({ post }) {
     return (
-      <main>
-        <h1>About</h1>
-      </main>
-    );
-  }
-  ```
-  
-  Now, if you visit `http://localhost:3000/about`, you'll see the `About` page. It's that simple.
-
-  But what about nested routing? We could have a `posts` page that shows all our posts but we may also want to have a `posts/new` page that holds a `NewPost` page for creating a new post. 
-  
-  To do this, we would first create a `posts` folder in the `app` directory and create a `page.tsx` file within the folder. 
-  
-  ```tsx
-  export default function Posts() {
-    return (
-      <main>
-        <h1>Posts</h1>
-      </main>
-    );
-  }
-  ```
-  
-  Then, we would create a `new` folder within the `posts` folder and create a `page.tsx` file within the folder.
-
-  ```tsx
-  export default function NewPost() {
-    return (
-      <main>
-        <h1>New Post</h1>
-      </main>
-    );
+      <div>
+        <Link href="/dashboard">Dashboard</Link>
+        <Link href={`/blog/${post.slug}`}>{post.title}</Link>
+      </div>
+    )
   }
   ```
 
-  Obviously the `NewPost` page would probably have a form or something, but you get the idea. Now, if you visit `http://localhost:3000/posts/new`, you'll see the `New Post` page.
+  ```tsx
+  'use client'
+ 
+  import { useRouter } from 'next/navigation'
+  
+  export default function Page() {
+    const router = useRouter()
+  
+    return (
+      <button type="button" onClick={() => router.push('/dashboard')}>
+        Dashboard
+      </button>
+    )
+  }
+  ```
+
+  As mentioned, we don't want to utilize client components unless we need to. So, if you're just navigating between pages, use the `Link` component. If you need to navigate programmatically, use the `useRouter` hook.
+
+  Also, if you're using `useRouter` and want to prefetch the page, you can do so using `router.prefetch('/dashboard')`. This will prefetch the page in the background, so it's ready when the user clicks the link.
 
   But what about dynamic routing? Sticking with our example of posts, maybe we want to have a `posts/[postId]` page that shows a specific post. To do this, it's pretty simple.
 
-  We create a `posts` folder in the `app` directory and create a `page.tsx` file within the folder.
+  We create a `posts` folder in the `app` directory and then create a `[postId]` folder, along with the brackets, followed by a `page.tsx` file within that folder. By surrounding a folder name with brackets, we tell `Next.js` that this is a dynamic route.
 
   ```tsx
-  export default function Posts() {
-    return (
-      <main>
-        <h1>Posts</h1>
-      </main>
-    );
-  }
-  ```
-
-  This is the same as before. Then, we create a `[postId]` folder within the `posts` folder and create a `page.tsx` file within the folder. Note that the folder name is surrounded by brackets. This tells `Next.js` that this is a dynamic route.
-
-  ```tsx
-  export default function Post() {
+  export default function Post({ postId }: { params: { postId: string }}) {
     return (
       <main>
         <h1>Post {postId}</h1>
@@ -267,7 +323,37 @@ This repository is a simplified crash course on Next.js. It is meant to be a qui
   }
   ```
 
-  Notice that we have automatic access to that dynamic route parameter. We can use it in our component. Now, if you visit `http://localhost:3000/posts/1`, you'll see the `Post 1` page. If you visit `http://localhost:3000/posts/2`, you'll see the `Post 2` page. And so on.
+  Notice that we have automatic access to that dynamic route parameter through props. We can use it in our component. Now, if you visit `http://localhost:3000/posts/1`, you'll see the `Post 1` page. If you visit `http://localhost:3000/posts/2`, you'll see the `Post 2` page. And so on.
+
+  Finally, if you want to utilize the path of the current route, either the entire path, or the query parameters, you can do so using the `usePathname()` and `useSearchParams()` hooks.
+
+  ```tsx
+  'use client'
+ 
+  import { usePathname } from 'next/navigation'
+  
+  export default function ExampleClientComponent() {
+    const pathname = usePathname()
+
+    return <p>Current pathname: {pathname}</p>
+  }
+  ```
+
+  ```tsx
+  'use client'
+ 
+  import { useSearchParams } from 'next/navigation'
+  
+  export default function SearchBar() {
+    const searchParams = useSearchParams()
+  
+    const search = searchParams.get('search')
+  
+    // URL -> `/dashboard?search=my-project`
+    // `search` -> 'my-project'
+    return <>Search: {search}</>
+  }
+  ```  
 </details>
 
 <details>
@@ -280,7 +366,9 @@ This repository is a simplified crash course on Next.js. It is meant to be a qui
   To do this, we can create a `posts` folder in the `app` directory and create a `layout.tsx` file within the folder.
 
   ```tsx
-  export default function PostsLayout({ children }) {
+  export default function PostsLayout({ children }: {
+    children: React.ReactNode;
+  }) {
     return (
       <main>
         <h1>Posts</h1>
@@ -290,48 +378,7 @@ This repository is a simplified crash course on Next.js. It is meant to be a qui
   }
   ```
 
-  Now, any `page.tsx` file within the `posts` folder or its subfolders will automatically show this layout.
-</details>
-
-<details>
-  <summary>Loading and Errors</summary></br>
-
-  One more thing to account for is loading. There are going to be times where our various `page.tsx` files won't load right away, especially if we're fetching data from an API. To account for this, we can create a `loading.tsx` file in the `app` directory, or our `posts` directory, etc.
-
-  ```tsx
-  export default function Loading() {
-    return (
-      <main>
-        <h1>Loading...</h1>
-      </main>
-    );
-  }
-  ```
-
-  Now, whenever our `page.tsx` files are loading, they'll show this `Loading` component automatically.
-
-  The same idea works with errors. If we want to show a custom error page, we can create an `error.tsx` file in the `app` directory, or our `posts` directory, etc.
-
-  ```tsx
-  'use client';
-
-  import { useEffect } from 'react';
-
-  export default function Error({ error, reset }: ErrorProps) {
-    useEffect(() => {
-      console.error(error);
-    }, [error])
-
-    return (
-      <main>
-        <h2>Something went wrong!</h1>
-        <button onClick={() => reset()}>Try again</button>
-      </main>
-    );
-  }
-  ```
-
-  `reset()` will try to re-render the segment. Notice that error components **_MUST_** be client-side, hence the `use client` directive.
+  Now, any `page.tsx` file within the `posts` folder or its subfolders will automatically show the `h1` tag.
 </details>
 
 <details>
@@ -408,17 +455,19 @@ This repository is a simplified crash course on Next.js. It is meant to be a qui
   - `HEAD` (retrieves the headers of a resource without fetching its body)
   - `OPTIONS` (retrieves the supported HTTP methods/communication options for a resource)
 
+  It's also best to utilize `NextRequest` and `NextResponse` from `next/server` to ensure that we're using the correct types.
+
   We can create a `GET` endpoint in one of two ways:
 
   ```ts
-  export async function GET(request: Request) {
+  export async function GET(request: NextRequest) {
     const users = [
       { id: 1, name: 'John Doe' },
       { id: 2, name: 'Jane Doe' },
       { id: 3, name: 'Bob Smith' },
     ];
 
-    return new Response(JSON.stringify(users));
+    return new NextResponse(JSON.stringify(users));
   }
   ```
 
@@ -434,6 +483,8 @@ This repository is a simplified crash course on Next.js. It is meant to be a qui
   }
   ```
 
+  Be careful of the syntax here. If we utilize separate methods, i.e. `GET`, `POST`, etc., we need to use a named export. We can only utilize a default export if we use the `handler` method.
+
   To call this API, we can use `fetch` like so:
 
   ```tsx
@@ -444,8 +495,13 @@ This repository is a simplified crash course on Next.js. It is meant to be a qui
   We can create a `POST` endpoint in a similar manner.
 
   ```ts
-  export async function POST(request: Request) {
-    const { name, email } = await request.json();
+  type Body = {
+    name: string;
+    email: string;
+  };
+
+  export async function POST(request: NextRequest) {
+    const { name, email } = (await request.json()) as Body;
 
     return new Response(JSON.stringify({ name, email }));
   }
@@ -459,7 +515,7 @@ This repository is a simplified crash course on Next.js. It is meant to be a qui
   }
   ```
 
-  We can call this API like so:
+  Notice the vast difference in syntax. It all depends on whether we use `POST` or `handler`. We can call this API like so:
 
   ```tsx
   const res = await fetch('/api/users', {
@@ -480,13 +536,15 @@ This repository is a simplified crash course on Next.js. It is meant to be a qui
   }
   ```
 
-  We can also use `query` parameters in our API endpoints. For example, if we want to get a specific user, we can do something like this:
+  We can also use `query` parameters and the `pathname` in our API endpoints. For example, we can do something like this:
 
   ```ts
-  export default function handler(req, res) {
-    const { id } = req.query;
-
-    res.status(200).json({ id });
+  export async function GET(request: NextRequest) {
+    const pathname = request.nextUrl.pathname;
+    const searchParams = request.nextUrl.searchParams;
   }
   ```
+
+  Given a request to `/home`, `pathname` would be `/home`.
+  Given a request to `/home?name=lee`, searchParams would be `{ name: 'lee' }`.
 </details>
